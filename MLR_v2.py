@@ -1,6 +1,8 @@
 #Capstone MLRansomware
 #Python3
-import os;
+import sys, os, locale;
+
+
 check = input("Want to restart your computer ? (y/n): ");
 if check == 'n':
     exit();
