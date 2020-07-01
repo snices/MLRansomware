@@ -3,6 +3,7 @@ import sys
 import wx
 MLR_TOOLTIP = 'MLR Defense' 
 MLR_ICON = 'icon.png' 
+MLR_VERSION = 'v1.0'
 
 def create_menu_item(menu, label, func):
     item = wx.MenuItem(menu, -1, label)
@@ -14,28 +15,54 @@ class MainWindow(wx.Frame):
     def __init__(self, parent, title):
         wx.Frame.__init__(self, parent, title=title)
 
+        #def panel
+        panel = wx.Panel(self)
+
         #def status bar
         self.CreateStatusBar()
         
         #def menu bar
-        appMenu = wx.Menu()
+        fileMenu = wx.Menu()
+        infoMenu = wx.Menu()
         
         #def menu items
-        menuAbout = appMenu.Append(wx.ID_ABOUT, "&About","This application has been developed to practically apply machine learning to prevent ransomware.")
-        menuExit = appMenu.Append(wx.ID_EXIT,"&Exit","Close MLR Defense")
+        menuAbout = infoMenu.Append(wx.ID_ABOUT, "&About", "This application has been developed to practically apply machine learning to prevent ransomware.")
+        menuVersion = infoMenu.Append(wx.ID_ANY, "&Version", "Software Version")
+        menuExit = fileMenu.Append(wx.ID_EXIT,"&Exit", "Close MLR Defense")
 
         #creating menu bar
         menuBar = wx.MenuBar()
-        menuBar.Append(appMenu,"&File")
+        menuBar.Append(fileMenu,"&File")
+        menuBar.Append(infoMenu,"&Info")
         self.SetMenuBar(menuBar)
-
+    
         #def menu binds
+        self.Bind(wx.EVT_MENU, self.OnVersion, menuVersion)
         self.Bind(wx.EVT_MENU, self.OnAbout,menuAbout)
         self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
+
+        #Widgets
+        about_button = wx.Button(panel, label = "About")
+
+        #def widget binds
+        about_button.Bind(wx.EVT_BUTTON, self.OnAbout)
+
+        #sizers
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(about_button, 0, wx.ALL | wx.Bottom, 5)
+        
+        self.SetSizer(main_sizer)
 
         #spawning window
         self.SetIcon(wx.Icon(MLR_ICON))
         self.Show(True)
+
+    def OnVersion(self, event):
+        #opens a dialog box with information about the version
+        verInfo = "MLR Defense Version " + MLR_VERSION
+        versiondlg = wx.MessageDialog(self, verInfo, caption="Version")
+        versiondlg.ShowModal()
+        versiondlg.Destroy()
 
     def OnAbout(self, event):
         #opens a dialog box with information about the application
