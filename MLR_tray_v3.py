@@ -1,6 +1,8 @@
 import wx.adv
-import sys
 import wx
+import sys
+import threading
+
 MLR_TOOLTIP = 'MLR Defense' 
 MLR_ICON = 'icon.png' 
 MLR_VERSION = 'v1.0'
@@ -72,9 +74,8 @@ class MainWindow(wx.Frame):
 
     def OnExit(self, event):
         #closes the application
-
-        sys.exit()
-
+        self.Close()
+        
 class TaskBarIcon(wx.adv.TaskBarIcon):
     def __init__(self, frame):
         #def tray frame
@@ -110,7 +111,7 @@ class TaskBarIcon(wx.adv.TaskBarIcon):
     def on_open(self, event):      
         app = wx.App(False)
         frame = MainWindow(None, "MLR Defense")
-        app.MainLoop()
+        frame.show()
 
     def on_exit(self, event):
         wx.CallAfter(self.Destroy)
@@ -127,6 +128,22 @@ def main():
     app = App(False)
     app.MainLoop()
 
+def monitor():
+    i = 0
+    print("the thread has been spawned")
+    while not quit:
+        i = i+1
+        print("%d%s",i,quit)
+    print(i)
+    print("This is the monitor thread exiting")
 
 if __name__ == '__main__':
-    main()
+    quit = False
+    GUI = threading.Thread(target=main)
+    GUI.start()
+    mlrProc = threading.Thread(target=monitor)
+    mlrProc.start()
+    GUI.join()
+    quit = True
+    mlrProc.join()
+    
