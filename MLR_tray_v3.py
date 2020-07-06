@@ -2,16 +2,13 @@ import wx.adv
 import wx
 import sys
 import threading
+import time
+import subprocess, ctypes, os, sys
 
 MLR_TOOLTIP = 'MLR Defense' 
 MLR_ICON = 'icon.png' 
 MLR_VERSION = 'v1.0'
-
-def create_menu_item(menu, label, func):
-    item = wx.MenuItem(menu, -1, label)
-    menu.Bind(wx.EVT_MENU, func, id=item.GetId())
-    menu.Append(item)
-    return item
+MLR_LOG = 'mlr_log.txt'
 
 class MainWindow(wx.Frame):
     def __init__(self, parent, title):
@@ -24,24 +21,20 @@ class MainWindow(wx.Frame):
         self.CreateStatusBar()
         
         #def menu bar
-        fileMenu = wx.Menu()
         infoMenu = wx.Menu()
         
         #def menu items
         menuAbout = infoMenu.Append(wx.ID_ABOUT, "&About", "This application has been developed to practically apply machine learning to prevent ransomware.")
         menuVersion = infoMenu.Append(wx.ID_ANY, "&Version", "Software Version")
-        menuExit = fileMenu.Append(wx.ID_EXIT,"&Exit", "Close MLR Defense")
 
         #creating menu bar
         menuBar = wx.MenuBar()
-        menuBar.Append(fileMenu,"&File")
         menuBar.Append(infoMenu,"&Info")
         self.SetMenuBar(menuBar)
     
         #def menu binds
         self.Bind(wx.EVT_MENU, self.OnVersion, menuVersion)
         self.Bind(wx.EVT_MENU, self.OnAbout,menuAbout)
-        self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
 
         #Widgets
         about_button = wx.Button(panel, label = "About")
@@ -72,10 +65,12 @@ class MainWindow(wx.Frame):
         aboutdlg.ShowModal()
         aboutdlg.Destroy()
 
-    def OnExit(self, event):
-        #closes the application
-        self.Close()
-        
+def create_menu_item(menu, label, func):
+    item = wx.MenuItem(menu, -1, label)
+    menu.Bind(wx.EVT_MENU, func, id=item.GetId())
+    menu.Append(item)
+    return item
+
 class TaskBarIcon(wx.adv.TaskBarIcon):
     def __init__(self, frame):
         #def tray frame
@@ -124,20 +119,39 @@ class App(wx.App):
         TaskBarIcon(frame)
         return True
 
+def checkAdmin():
+    #Run the application with admin rights
+    try:
+        status = ctypes.windll.shell32.IsUserAnAdmin()
+    except AttributeError:
+        status = False
+    if not status:
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
+
+def firewallResponse():
+    time.sleep(5)
+
+def processResponse(proc_Name):
+    time.sleep(5)
+
 def main():
     app = App(False)
     app.MainLoop()
 
 def monitor():
-    i = 0
-    print("the thread has been spawned")
+    logFile = open(MLR_LOG, 'r')
+    logFile.seek(0,2)
+    print("The log file is being monitored")
     while not quit:
-        i = i+1
-        print("%d%s",i,quit)
-    print(i)
+        line = logFile.readline()
+        if not line:
+            time.sleep(0.1)
+            continue
+        
     print("This is the monitor thread exiting")
 
 if __name__ == '__main__':
+    checkAdmin()
     quit = False
     GUI = threading.Thread(target=main)
     GUI.start()
