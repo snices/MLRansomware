@@ -1,0 +1,4 @@
+chrome.exe:NtReadVirtualMemory
+test:GetKeyState
+ransomware:GetTempPathW
+safe.exe:NothingSuspicious
