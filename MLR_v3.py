@@ -4,6 +4,7 @@ import sys
 import threading
 import time
 import subprocess, ctypes, os, sys
+from subprocess import DEVNULL
 
 MLR_TOOLTIP = 'MLR Defense' 
 MLR_ICON = 'icon.png' 
@@ -126,13 +127,27 @@ def checkAdmin():
     except AttributeError:
         status = False
     if not status:
-        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
+        print("This is not running as an admin")
+    print("Running as admin")
 
-def firewallResponse():
-    time.sleep(5)
+def networkDisable():
+    nic_list = subprocess.check_output('wmic nic get index')
+    nic_list = nic_list.rstrip().decode().split()
+    nic_list.pop(0)
+    for index in nic_list:
+        nic_command = "wmic path win32_networkadapter where index=" + index + " call disable"
+        subprocess.call(nic_command, stderr=DEVNULL)
+    return nic_list
 
+def networkEnable(nic_list):
+    for index in nic_list:
+        nic_command = "wmic path win32_networkadapter where index=" + index + " call enable"
+        subprocess.call(nic_command, stderr=DEVNULL)
+		
 def processResponse(proc_Name):
-    time.sleep(5)
+    proc_command = "taskkill /f /im " + proc_Name
+    #os.system(command)
+    print("Running command: " + proc_command)
 
 def main():
     app = App(False)
@@ -142,12 +157,14 @@ def monitor():
     logFile = open(MLR_LOG, 'r')
     logFile.seek(0,2)
     print("The log file is being monitored")
+    net_list = networkDisable()    
     while not quit:
         line = logFile.readline()
         if not line:
             time.sleep(0.1)
             continue
-        
+    
+    networkEnable(net_list)
     print("This is the monitor thread exiting")
 
 if __name__ == '__main__':
