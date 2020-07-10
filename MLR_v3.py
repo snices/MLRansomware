@@ -10,6 +10,7 @@ MLR_TOOLTIP = 'MLR Defense'
 MLR_ICON = 'icon.png' 
 MLR_VERSION = 'v1.0'
 MLR_LOG = 'mlr_log.txt'
+MLR_TEST = 'matches.txt'
 
 class MainWindow(wx.Frame):
     def __init__(self, parent, title):
@@ -131,22 +132,29 @@ def checkAdmin():
     print("Running as admin")
 
 def networkDisable():
+    #produces a list of index numbers related to active NICs
     nic_list = subprocess.check_output('wmic nic get index')
+    #Manipulate list to be usable with command
     nic_list = nic_list.rstrip().decode().split()
     nic_list.pop(0)
+    #loop through all identified index numbers and disable them
     for index in nic_list:
         nic_command = "wmic path win32_networkadapter where index=" + index + " call disable"
+        #call the command and supress errors (Virtual NICs throw errors)
         subprocess.call(nic_command, stderr=DEVNULL)
     return nic_list
 
 def networkEnable(nic_list):
+    #loop through list of NIC indexes and re-enable them
     for index in nic_list:
         nic_command = "wmic path win32_networkadapter where index=" + index + " call enable"
         subprocess.call(nic_command, stderr=DEVNULL)
 		
 def processResponse(proc_Name):
     proc_command = "taskkill /f /im " + proc_Name
-    #os.system(command)
+    #Kill the identified malicious process
+    """os.system(command)"""
+    #Test command to show process getting killed
     print("Running command: " + proc_command)
 
 def main():
@@ -154,17 +162,24 @@ def main():
     app.MainLoop()
 
 def monitor():
-    logFile = open(MLR_LOG, 'r')
+    #opens the log file and jumps to the end. Continuosly reads the file
+    """logFile = open(MLR_LOG, 'r')
     logFile.seek(0,2)
     print("The log file is being monitored")
-    net_list = networkDisable()    
     while not quit:
         line = logFile.readline()
         if not line:
             time.sleep(0.1)
-            continue
-    
-    networkEnable(net_list)
+            continue"""
+    #Proof of concept section
+
+    with open(MLR_TEST) as testLogFile:
+        for line in testLogFile:
+            log = line.strip()
+            print(log)
+            buffer = log.split(':')
+            delta = buffer[1]
+            print("This is the score change: " + delta)
     print("This is the monitor thread exiting")
 
 if __name__ == '__main__':

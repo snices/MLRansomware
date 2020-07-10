@@ -1,0 +1,3 @@
+chrome.exe:Col10
+test:Col12
+ransomware:Col159

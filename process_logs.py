@@ -3,11 +3,11 @@ import re
 # Desired Format: processname:Col3
 
 # log file path to parse from
-logfile = r"path"
+logfile = r"testLog.txt"
 # indicator list file path that will be used to check for IoC's
-indicators = r"path"
+indicators = r"VariableNames.txt"
 # weights of each notable indicator
-weights = r"path"
+weights = r"Weights.csv"
 
 
 # formatting indicator file
