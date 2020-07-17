@@ -83,18 +83,19 @@ class MainWindow(wx.Frame):
         aboutdlg.Destroy()
 
     def OnThreats(self, event):
-        # opens a dialog box with information about the version
+        # opens a new frame to show threat overview
         title = 'Threat Overview'
         frame = ThreatFrame(title=title)
 
     def OnGitHub(self, event):
-        # opens a dialog box with information about the version
+        # opens a browser tab to github repo
         webbrowser.open('https://github.com/snices/MLRansonware')
 
     def Bypass(self, event):
         pass
 
 
+# Threat frame to display current threat list in a list format
 class ThreatFrame(wx.Frame):
     def __init__(self, title, parent=None):
         wx.Frame.__init__(self, parent=parent, title=title, size=(400, 300))
