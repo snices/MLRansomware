@@ -1,71 +1,124 @@
 import wx.adv
 import wx
+import webbrowser
 import sys
 import threading
 import time
 import subprocess, ctypes, os, sys
 from subprocess import DEVNULL
+from datetime import date
 
-MLR_TOOLTIP = 'MLR Defense' 
-MLR_ICON = 'icon.png' 
+MLR_TOOLTIP = 'MLR Defense'
+MLR_ICON = 'icon.png'
 MLR_VERSION = 'v1.0'
 MLR_LOG = 'mlr_log.txt'
 MLR_TEST = 'matches.txt'
+
 
 class MainWindow(wx.Frame):
     def __init__(self, parent, title):
         wx.Frame.__init__(self, parent, title=title)
 
-        #def panel
+        # def panel
         panel = wx.Panel(self)
 
-        #def status bar
-        self.CreateStatusBar()
-        
-        #def menu bar
+        # def status bar
+        self.statusBar = self.CreateStatusBar()
+        today = date.today().strftime("%B %d, %Y")
+        self.statusBar.SetStatusText(str(today))
+
+        # def menu bar
         infoMenu = wx.Menu()
-        
-        #def menu items
-        menuAbout = infoMenu.Append(wx.ID_ABOUT, "&About", "This application has been developed to practically apply machine learning to prevent ransomware.")
+        threatsMenu = wx.Menu()
+
+        # def menu items
+        menuAbout = infoMenu.Append(wx.ID_ABOUT, "&About", "This application has been developed to practically apply "
+                                                           "machine learning to prevent ransomware.")
         menuVersion = infoMenu.Append(wx.ID_ANY, "&Version", "Software Version")
+        menuGithub = infoMenu.Append(wx.ID_ANY, "&Github", "GitHub repo")
+        menuThreats = threatsMenu.Append(wx.ID_ANY, "&Threats", "Possible active Threats")
 
-        #creating menu bar
+        # creating menu bar
         menuBar = wx.MenuBar()
-        menuBar.Append(infoMenu,"&Info")
+        menuBar.Append(infoMenu, "&Info")
+        menuBar.Append(threatsMenu, "&Threats")
         self.SetMenuBar(menuBar)
-    
-        #def menu binds
+
+        # def menu binds
         self.Bind(wx.EVT_MENU, self.OnVersion, menuVersion)
-        self.Bind(wx.EVT_MENU, self.OnAbout,menuAbout)
+        self.Bind(wx.EVT_MENU, self.OnAbout, menuAbout)
+        self.Bind(wx.EVT_MENU, self.OnThreats, menuThreats)
+        self.Bind(wx.EVT_MENU, self.OnGitHub, menuGithub)
+        self.Bind(wx.EVT_MENU_HIGHLIGHT, self.Bypass)
 
-        #Widgets
-        about_button = wx.Button(panel, label = "About")
+        # Widgets
+        about_button = wx.Button(panel, label="About")
 
-        #def widget binds
+        # def widget binds
         about_button.Bind(wx.EVT_BUTTON, self.OnAbout)
 
-        #sizers
+        # sizers
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(about_button, 0, wx.ALL | wx.Bottom, 5)
-        
+
         self.SetSizer(main_sizer)
 
-        #spawning window
+        # spawning window
         self.SetIcon(wx.Icon(MLR_ICON))
         self.Show(True)
 
     def OnVersion(self, event):
-        #opens a dialog box with information about the version
+        # opens a dialog box with information about the version
         verInfo = "MLR Defense Version " + MLR_VERSION
         versiondlg = wx.MessageDialog(self, verInfo, caption="Version")
         versiondlg.ShowModal()
         versiondlg.Destroy()
 
     def OnAbout(self, event):
-        #opens a dialog box with information about the application
-        aboutdlg = wx.MessageDialog(self, "This application has been developed to apply machine learning to ransomware prevention. Developed by Bradley Silva and Justin Crozier.", caption="About")
+        # opens a dialog box with information about the application
+        aboutdlg = wx.MessageDialog(self,
+                                    "This application has been developed to apply machine learning to ransomware prevention. Developed by Bradley Silva and Justin Crozier.",
+                                    caption="About")
         aboutdlg.ShowModal()
         aboutdlg.Destroy()
+
+    def OnThreats(self, event):
+        # opens a dialog box with information about the version
+        title = 'Threat Overview'
+        frame = ThreatFrame(title=title)
+
+    def OnGitHub(self, event):
+        # opens a dialog box with information about the version
+        webbrowser.open('https://github.com/snices/MLRansonware')
+
+    def Bypass(self, event):
+        pass
+
+
+class ThreatFrame(wx.Frame):
+    def __init__(self, title, parent=None):
+        wx.Frame.__init__(self, parent=parent, title=title, size=(400, 300))
+        self.SetIcon(wx.Icon(MLR_ICON))
+        self.Show()
+
+        panel = wx.Panel(self)
+        box = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.text = wx.TextCtrl(panel, style=wx.TE_MULTILINE)
+
+        threatList = ['ransomware.exe', 'suspicious.exe']
+        lst = wx.ListBox(panel, size=(200, 300), choices=threatList, style=wx.LB_SINGLE)
+        box.Add(lst, 0, wx.EXPAND)
+        box.Add(self.text, 1, wx.EXPAND)
+        panel.SetSizer(box)
+        panel.Fit()
+
+        self.Bind(wx.EVT_LISTBOX, self.onSelectBox, lst)
+        self.Show(True)
+
+    def onSelectBox(self, event):
+        self.text.AppendText(event.GetEventObject().GetStringSelection() + " currently has a score of: " + "74%" + "\n")
+
 
 def create_menu_item(menu, label, func):
     item = wx.MenuItem(menu, -1, label)
@@ -73,39 +126,40 @@ def create_menu_item(menu, label, func):
     menu.Append(item)
     return item
 
+
 class TaskBarIcon(wx.adv.TaskBarIcon):
     def __init__(self, frame):
-        #def tray frame
+        # def tray frame
         self.frame = frame
         super(TaskBarIcon, self).__init__()
 
-        #setting tray icon
+        # setting tray icon
         self.set_icon(MLR_ICON)
 
-        #setting left click bind
+        # setting left click bind
         self.Bind(wx.adv.EVT_TASKBAR_LEFT_DOWN, self.on_left_down)
 
     def CreatePopupMenu(self):
-        #def tray menu
+        # def tray menu
         menu = wx.Menu()
         menu.AppendSeparator()
-        
-        #def tray menu items
+
+        # def tray menu items
         create_menu_item(menu, 'Open', self.on_open)
         create_menu_item(menu, 'Exit', self.on_exit)
-        
+
         return menu
 
     def set_icon(self, path):
         icon = wx.Icon(path)
         self.SetIcon(icon, MLR_TOOLTIP)
-    
+
     def on_left_down(self, event):
         app = wx.App(False)
         frame = MainWindow(None, "MLR Defense")
         app.MainLoop()
 
-    def on_open(self, event):      
+    def on_open(self, event):
         app = wx.App(False)
         frame = MainWindow(None, "MLR Defense")
         frame.show()
@@ -114,15 +168,17 @@ class TaskBarIcon(wx.adv.TaskBarIcon):
         wx.CallAfter(self.Destroy)
         self.frame.Close()
 
+
 class App(wx.App):
     def OnInit(self):
-        frame=wx.Frame(None)
+        frame = wx.Frame(None)
         self.SetTopWindow(frame)
         TaskBarIcon(frame)
         return True
 
+
 def checkAdmin():
-    #Run the application with admin rights
+    # Run the application with admin rights
     try:
         status = ctypes.windll.shell32.IsUserAnAdmin()
     except AttributeError:
@@ -131,38 +187,43 @@ def checkAdmin():
         print("This is not running as an admin")
     print("Running as admin")
 
+
 def networkDisable():
-    #produces a list of index numbers related to active NICs
+    # produces a list of index numbers related to active NICs
     nic_list = subprocess.check_output('wmic nic get index')
-    #Manipulate list to be usable with command
+    # Manipulate list to be usable with command
     nic_list = nic_list.rstrip().decode().split()
     nic_list.pop(0)
-    #loop through all identified index numbers and disable them
+    # loop through all identified index numbers and disable them
     for index in nic_list:
         nic_command = "wmic path win32_networkadapter where index=" + index + " call disable"
-        #call the command and supress errors (Virtual NICs throw errors)
+        # call the command and supress errors (Virtual NICs throw errors)
         subprocess.call(nic_command, stderr=DEVNULL)
     return nic_list
 
+
 def networkEnable(nic_list):
-    #loop through list of NIC indexes and re-enable them
+    # loop through list of NIC indexes and re-enable them
     for index in nic_list:
         nic_command = "wmic path win32_networkadapter where index=" + index + " call enable"
         subprocess.call(nic_command, stderr=DEVNULL)
-		
+
+
 def processResponse(proc_Name):
     proc_command = "taskkill /f /im " + proc_Name
-    #Kill the identified malicious process
+    # Kill the identified malicious process
     """os.system(command)"""
-    #Test command to show process getting killed
+    # Test command to show process getting killed
     print("Running command: " + proc_command)
+
 
 def main():
     app = App(False)
     app.MainLoop()
 
+
 def monitor():
-    #opens the log file and jumps to the end. Continuosly reads the file
+    # opens the log file and jumps to the end. Continuosly reads the file
     """logFile = open(MLR_LOG, 'r')
     logFile.seek(0,2)
     print("The log file is being monitored")
@@ -171,7 +232,7 @@ def monitor():
         if not line:
             time.sleep(0.1)
             continue"""
-    #Proof of concept section
+    # Proof of concept section
 
     with open(MLR_TEST) as testLogFile:
         for line in testLogFile:
@@ -181,6 +242,7 @@ def monitor():
             delta = buffer[1]
             print("This is the score change: " + delta)
     print("This is the monitor thread exiting")
+
 
 if __name__ == '__main__':
     checkAdmin()
@@ -192,4 +254,3 @@ if __name__ == '__main__':
     GUI.join()
     quit = True
     mlrProc.join()
-    
