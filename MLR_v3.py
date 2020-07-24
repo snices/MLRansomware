@@ -1,10 +1,11 @@
 import wx.adv
 import wx
+import csv
 import webbrowser
-import sys
 import threading
 import time
-import subprocess, ctypes, os, sys
+import subprocess, ctypes, os, sys, queue
+from queue import Queue
 from subprocess import DEVNULL
 from datetime import date
 
@@ -13,7 +14,7 @@ MLR_ICON = 'icon.png'
 MLR_VERSION = 'v1.0'
 MLR_LOG = 'mlr_log.txt'
 MLR_TEST = 'matches.txt'
-
+MLR_WEIGHT = 'Weights.csv'
 
 class MainWindow(wx.Frame):
     def __init__(self, parent, title):
@@ -106,8 +107,8 @@ class ThreatFrame(wx.Frame):
         box = wx.BoxSizer(wx.HORIZONTAL)
 
         self.text = wx.TextCtrl(panel, style=wx.TE_MULTILINE)
-
-        threatList = ['ransomware.exe', 'suspicious.exe']
+        formatbuff = formattedq.get()
+        threatList = ["ransomware.exe", "taskmanager.exe"]
         lst = wx.ListBox(panel, size=(200, 300), choices=threatList, style=wx.LB_SINGLE)
         box.Add(lst, 0, wx.EXPAND)
         box.Add(self.text, 1, wx.EXPAND)
@@ -118,6 +119,7 @@ class ThreatFrame(wx.Frame):
         self.Show(True)
 
     def onSelectBox(self, event):
+        
         self.text.AppendText(event.GetEventObject().GetStringSelection() + " currently has a score of: " + "74%" + "\n")
 
 
@@ -234,24 +236,56 @@ def monitor():
             time.sleep(0.1)
             continue"""
     # Proof of concept section
-
     with open(MLR_TEST) as testLogFile:
         for line in testLogFile:
             log = line.strip()
-            print(log)
             buffer = log.split(':')
-            delta = buffer[1]
-            print("This is the score change: " + delta)
+            dataq.put(buffer)
     print("This is the monitor thread exiting")
 
+def modify():
+    #creating a dictionary to store column #'s and respective weight
+    w_dict = {}
+    with open(MLR_WEIGHT) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        for row in csv_reader:
+            w_dict[row[0]] = row[1]
+    #defining temp dict to hold procname and value
+    temp = {}
+    #monitoring thread main loop
+    while(True):
+        #when there is an object in the data queue do the following
+        if dataq.not_empty:
+            #get the value from the data queue and split into key and value
+            databuff = dataq.get()
+            key = databuff[0]
+            value = databuff[1]
+            #convert col# into true value using weight dict
+            if value in w_dict:
+                value = float(w_dict[value])
+            else:
+                value = 0.0
+            #incrementing proc value if already stored
+            if key in temp:
+                temp[key] += value
+            #adding new proc name and its value
+            else:
+                temp[key] = value
+        print(temp)
+        formattedq.put(temp)
 
 if __name__ == '__main__':
     checkAdmin()
+    dataq = Queue()
+    formattedq = Queue()
     quit = False
     GUI = threading.Thread(target=main)
     GUI.start()
     mlrProc = threading.Thread(target=monitor)
     mlrProc.start()
+    modifyProc = threading.Thread(target = modify)
+    modifyProc.daemon=True
+    modifyProc.start()
     GUI.join()
     quit = True
     mlrProc.join()
