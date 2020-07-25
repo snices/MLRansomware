@@ -1,4 +1,5 @@
 import wx.adv
+import wx.lib.mixins.listctrl as listmix
 import wx
 import csv
 import webbrowser
@@ -8,10 +9,12 @@ import subprocess, ctypes, os, sys, queue
 from queue import Queue
 from subprocess import DEVNULL
 from datetime import date
+from wx.lib.agw import ultimatelistctrl as ULC
+
 
 MLR_TOOLTIP = 'MLR Defense'
 MLR_ICON = 'icon.png'
-MLR_VERSION = 'v1.0'
+MLR_VERSION = 'v3.0'
 MLR_LOG = 'mlr_log.txt'
 MLR_TEST = 'matches.txt'
 MLR_WEIGHT = 'Weights.csv'
@@ -54,12 +57,14 @@ class MainWindow(wx.Frame):
 
         # Widgets
         about_button = wx.Button(panel, label="About")
-
+        threat_button = wx.Button(panel, label="Threat List")
         # def widget binds
         about_button.Bind(wx.EVT_BUTTON, self.OnAbout)
+        threat_button.Bind(wx.EVT_BUTTON, self.OnThreats)
 
         # sizers
         main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(threat_button, 0, wx.ALL | wx.Top, 5)
         main_sizer.Add(about_button, 0, wx.ALL | wx.Bottom, 5)
 
         self.SetSizer(main_sizer)
@@ -97,31 +102,42 @@ class MainWindow(wx.Frame):
 
 
 # Threat frame to display current threat list in a list format
-class ThreatFrame(wx.Frame):
+class ThreatFrame(wx.Frame, listmix.ColumnSorterMixin):
     def __init__(self, title, parent=None):
         wx.Frame.__init__(self, parent=parent, title=title, size=(400, 300))
         self.SetIcon(wx.Icon(MLR_ICON))
-        self.Show()
 
-        panel = wx.Panel(self)
-        box = wx.BoxSizer(wx.HORIZONTAL)
+        self.list_ctrl = ULC.UltimateListCtrl(self, -1, agwStyle=ULC.ULC_REPORT|ULC.ULC_HAS_VARIABLE_ROW_HEIGHT)
+        self.list_ctrl.InsertColumn(0, 'Process Name')
+        self.list_ctrl.InsertColumn(1, 'Score')
+        self.list_ctrl.SetColumnWidth(0, 150)
+        self.list_ctrl.SetColumnWidth(1, 220)
 
-        self.text = wx.TextCtrl(panel, style=wx.TE_MULTILINE)
-        formatbuff = formattedq.get()
-        threatList = ["ransomware.exe", "taskmanager.exe"]
-        lst = wx.ListBox(panel, size=(200, 300), choices=threatList, style=wx.LB_SINGLE)
-        box.Add(lst, 0, wx.EXPAND)
-        box.Add(self.text, 1, wx.EXPAND)
-        panel.SetSizer(box)
-        panel.Fit()
+        rows = [("N/A", "N/A")]
 
-        self.Bind(wx.EVT_LISTBOX, self.onSelectBox, lst)
+        if formattedq.not_empty:
+            formatbuff = formattedq.get()
+            rows = list(formatbuff.items())
+        
+        for rowIndex, data in enumerate(rows):
+            for colIndex, coldata in enumerate(data):
+                if colIndex == 0:
+                    self.list_ctrl.InsertStringItem(rowIndex, coldata)
+                else:
+                    self.list_ctrl.SetStringItem(rowIndex, colIndex, str(coldata))
+            self.list_ctrl.SetItemData(rowIndex, data)
+
+        self.itemDataMap = {data : data for data in rows} 
+
+        listmix.ColumnSorterMixin.__init__(self,2)
+
+        box = wx.BoxSizer(wx.VERTICAL)
+        box.Add(self.list_ctrl, 1, wx.ALL|wx.EXPAND, 5)
+        self.SetSizer(box)
         self.Show(True)
 
-    def onSelectBox(self, event):
-        
-        self.text.AppendText(event.GetEventObject().GetStringSelection() + " currently has a score of: " + "74%" + "\n")
-
+    def GetListCtrl(self):
+        return self.list_ctrl
 
 def create_menu_item(menu, label, func):
     item = wx.MenuItem(menu, -1, label)
@@ -188,7 +204,8 @@ def checkAdmin():
         status = False
     if not status:
         print("This is not running as an admin")
-    print("Running as admin")
+    else:
+        print("Running as admin")
 
 
 def networkDisable():
@@ -271,8 +288,12 @@ def modify():
             #adding new proc name and its value
             else:
                 temp[key] = value
-        print(temp)
         formattedq.put(temp)
+        for key, val in temp.items():
+            if val > 10:
+                nic_list = networkDisable()
+                processResponse(key)
+                networkEnable(nic_list)
 
 if __name__ == '__main__':
     checkAdmin()
