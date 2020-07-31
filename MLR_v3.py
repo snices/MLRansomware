@@ -244,7 +244,7 @@ def main():
 
 def monitor():
     # opens the log file and jumps to the end. Continuosly reads the file
-    logFile = open(MLR_LOG, 'r')
+    """logFile = open(MLR_LOG, 'r')
     logFile.seek(0,2)
     print("The log file is being monitored")
     while not quit:
@@ -253,7 +253,7 @@ def monitor():
             dataq.put(buffer)
         if not line:
             time.sleep(0.1)
-            continue
+            continue"""
     # Proof of concept section
     with open(MLR_TEST) as testLogFile:
         for line in testLogFile:
